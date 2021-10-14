@@ -1,0 +1,68 @@
+
+app:
+  name: client-fuse-producer-example
+
+  timer:
+    kafkaProducer:
+      period: 5000
+      delay: 5000
+
+  kafka:
+    brokerHosts: my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.d8ab.sandbox1168.opentlc.com:443
+    topic: my-topic
+
+    producer:
+      clienId: ${app.name}
+
+      # acks = 0 => El productor ni siquiera esperará una respuesta del corredor. Inmediatamente considera que la escritura fue exitosa en el momento en que se envía el registro.
+      # acks = 1 => El productor considerará que la escritura fue exitosa cuando el líder reciba el registro. El broker líder sabrá responder de inmediato en el momento en que reciba el registro y no esperará más.
+      # acks = all => El productor considerará que la escritura se realizó correctamente cuando todas las réplicas sincronizadas reciban el registro.
+      requestRequiredAcks: "all"
+      
+      # Se configura en el broker e indica el número mínimo de réplicas sincronizadas necesarias para que un broker permita solicitudes de acks=all.
+      # min.insync.replicas=1
+      
+      # Estrategia de envio de mensaje a las particiones
+      partitioner: org.apache.kafka.clients.producer.internals.DefaultPartitioner
+      
+      # tamaño máximo en bytes de cada lote de mensajes.
+      producerBatchSize: 163840
+       
+      # Para dar más tiempo para que se llenen los lotes, puede configurar el linger.mspara que el productor espere más antes de enviar. 
+      # El retraso permite al productor esperar a que el lote llegue al configurado batch.size
+      lingerMs: 10
+      
+      # //131072
+      transactionalId: producer
+      
+      # lz4 (recomendado para rendimiento segun confluent), snappy, zstd, gzip
+      compressionTypeConfig: gzip
+      
+      # Los productores de Kafka asignan automáticamente memoria para que el cliente Java almacene los mensajes no enviados. 
+      # Si se alcanza ese límite de memoria, el productor bloquea los envíos adicionales hasta que se libere la memoria o hasta 
+      # que max.block.mspase el tiempo
+      maxBlockMsConfig: 600000
+      
+      # Puede ajustar la cantidad de memoria asignada con el parámetro de configuración buffer.memory
+      bufferMemoryConfig: 33554432
+      maxInFlightRequestsPerConnection: 5
+      
+      enableIdempotenceConfig: true
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      
+    
+      # TLS
+      security.protocol: SSL
+      ssl.truststore.location: /Users/damianlezcano/rh/kafka_2.13-2.8.0/truststore.jks
+      ssl.truststore.password: redhat01
+
+camel:
+  springboot:
+    name:  ${app.name}
+    main-run-controller: true
+
+spring:
+  application:
+    name: ${app.name}
+  main:
+    banner-mode: off
