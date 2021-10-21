@@ -540,3 +540,118 @@ spec:
     groupRegex: .*
     topicRegex: .*
 ```
+
+```bash
+bin/kafka-topics.sh \
+--create \
+--topic ssl-perf-test \
+--partitions 16 \
+--replication-factor 3 \
+--config retention.ms=86400000 \
+--config min.insync.replicas=2 \
+--bootstrap-server servera:19092,serverb:29092,serverc:39092 \
+--command-config /path/to/ssl-perf-test.properties 
+```
+
+El siguiente ejemplo utilizará el tema creado anteriormente para almacenar 300 mil de mensajes con un tamaño de 1 KiB cada uno. El valor -1 para - rendimiento significa que los mensajes se producen lo más rápido posible, sin límite de limitación
+
+```bash
+bin/kafka-producer-perf-test.sh \
+--topic ssl-perf-test \
+--throughput -1 \
+--num-records 300000 \
+--record-size 1024 \
+--producer-props acks=all bootstrap.servers=servera:19092,serverb:29092,serverc:39092 \
+--producer.config /path/to/ssl-perf-test.properties
+```
+
+```log
+16201 records sent, 3240.2 records/sec (3.16 MB/sec), 2185.4 ms avg latency, 4483.0 ms max latency.
+13875 records sent, 2775.0 records/sec (2.71 MB/sec), 6826.9 ms avg latency, 9445.0 ms max latency.
+13620 records sent, 2715.3 records/sec (2.65 MB/sec), 10186.3 ms avg latency, 10908.0 ms max latency.
+11685 records sent, 2335.6 records/sec (2.28 MB/sec), 11858.7 ms avg latency, 12488.0 ms max latency.
+13275 records sent, 2653.9 records/sec (2.59 MB/sec), 12276.3 ms avg latency, 12822.0 ms max latency.
+14220 records sent, 2843.4 records/sec (2.78 MB/sec), 11689.8 ms avg latency, 12530.0 ms max latency.
+11730 records sent, 2344.6 records/sec (2.29 MB/sec), 11389.4 ms avg latency, 11988.0 ms max latency.
+11790 records sent, 2347.7 records/sec (2.29 MB/sec), 11758.8 ms avg latency, 12726.0 ms max latency.
+9915 records sent, 1981.8 records/sec (1.94 MB/sec), 13526.4 ms avg latency, 14225.0 ms max latency.
+12780 records sent, 2546.8 records/sec (2.49 MB/sec), 13830.6 ms avg latency, 14639.0 ms max latency.
+12180 records sent, 2436.0 records/sec (2.38 MB/sec), 13576.6 ms avg latency, 14105.0 ms max latency.
+12150 records sent, 2430.0 records/sec (2.37 MB/sec), 12348.6 ms avg latency, 12984.0 ms max latency.
+11760 records sent, 2348.7 records/sec (2.29 MB/sec), 12588.4 ms avg latency, 13024.0 ms max latency.
+11520 records sent, 2303.5 records/sec (2.25 MB/sec), 12979.8 ms avg latency, 13188.0 ms max latency.
+13275 records sent, 2651.8 records/sec (2.59 MB/sec), 12910.2 ms avg latency, 13145.0 ms max latency.
+16605 records sent, 3311.1 records/sec (3.23 MB/sec), 11412.2 ms avg latency, 12877.0 ms max latency.
+14415 records sent, 2873.2 records/sec (2.81 MB/sec), 10006.9 ms avg latency, 10357.0 ms max latency.
+14430 records sent, 2886.0 records/sec (2.82 MB/sec), 10417.5 ms avg latency, 10880.0 ms max latency.
+16320 records sent, 3264.0 records/sec (3.19 MB/sec), 10423.0 ms avg latency, 10672.0 ms max latency.
+14430 records sent, 2882.5 records/sec (2.81 MB/sec), 9851.6 ms avg latency, 10088.0 ms max latency.
+14205 records sent, 2839.9 records/sec (2.77 MB/sec), 10384.6 ms avg latency, 10681.0 ms max latency.
+14625 records sent, 2922.1 records/sec (2.85 MB/sec), 10695.2 ms avg latency, 11017.0 ms max latency.
+300000 records sent, 2674.917300 records/sec (2.61 MB/sec), 10861.20 ms avg latency, 14639.00 ms max latency, 11137 ms 50th, 13809 ms 95th, 14216 ms 99th, 14612 ms 99.9th.
+```
+
+En este ejemplo, se producen aproximadamente 2700 mensajes por segundo en promedio, con una latencia máxima de aprox. 14 segundos.
+La latencia del percentil 95 de 13809 ms significa que para el 95% de los mensajes (2,85 mil. De 3 mil.) Tomó menos de 14 segundos entre el momento en que se produjeron y el momento en que se escribieron en el sistema de archivos de todos los agentes.
+
+De la misma manera, el valor de 14612 ms para el percentil 99,9 significa que 1 de cada 1000 mensajes experimentó un retraso de ~ 14 segundos desde que se produjo hasta que se publicó y confirmó en los segmentos del corredor.
+
+```bash
+bin/kafka-consumer-perf-test.sh \
+--topic ssl-perf-test \
+--broker-list servera:19092,serverb:19092,serverc:39092 \
+--messages 300000  | \
+jq -R .|jq -sr 'map(./",")|transpose|map(join(": "))[]'
+```
+
+
+
+## TLS
+
+Create la clave y el certificado (desarrollo)
+
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout kafka.key -out kafka.pem -days 365 -nodes
+```
+
+Secret con el certificado
+
+```bash
+oc create secret generic kafka-cert-secret -n amq-streams --from-file=kafka-listener-certificate.crt=kafka.pem --from-file=kafka-listener-key.key=kafka.key
+```
+
+Referenciamos el certificado
+```yaml
+      - name: external
+        port: 9094
+        type: route
+        tls: true
+        configuration:
+          brokerCertChainAndKey:
+            secretName: kafka-cert-secret
+            certificate: kafka-listener-certificate.crt
+            key: kafka-listener-key.key
+```
+
+### Verificamos
+
+Verificamos el certificado con OpenSSL
+```bash
+openssl s_client -showcerts -servername $(oc get routes my-cluster-kafka-bootstrap -n amq-streams -o=jsonpath='{.status.ingress[0].host}{"\n"}') -connect ${BOOTSTRAP_SERVER_URL}
+```
+
+Obtenemos el certificado publico y generamos nuestro keystore.jks
+```bash
+echo -n | openssl s_client -connect ${BOOTSTRAP_SERVER_URL} -servername $(oc get routes my-cluster-kafka-tls-bootstrap -n amq-streams -o=jsonpath='{.status.ingress[0].host}{"\n"}') -showcerts | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > kafka-ocp-route.pem
+
+keytool -import -file kafka-ocp-route.pem -alias kafka -keystore keystore.jks
+```
+
+Creamos un consumidor
+```bash
+bin/kafka-console-consumer.sh --bootstrap-server ${BOOTSTRAP_SERVER_URL} --consumer-property security.protocol=SSL --consumer-property ssl.keystore.password=redhat01 --consumer-property ssl.keystore.location=keystore.jks --topic my-topic --from-beginning
+```
+
+Creamos un productor
+```bash
+bin/kafka-console-producer.sh --broker-list ${BOOTSTRAP_SERVER_URL} --producer-property security.protocol=SSL --producer-property ssl.keystore.password=redhat01 --producer-property ssl.keystore.location=keystore.jks --topic my-topic
