@@ -456,6 +456,9 @@ Yaml resultante:
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaBridge
+metadata:
+  name: my-bridge
+  namespace: amq-streams
 spec:
   bootstrapServers: 'my-cluster-kafka-bootstrap:9092'
   http:
@@ -463,9 +466,16 @@ spec:
   replicas: 1
 ```
 
+Creamos la ruta
+
+```bash
+
+oc expose my-bridge-bridge-service
+```
+
 Variables de entorno necesarias
 ```bash
-KAFKA_BRIDGE_ROUTE_URL=$(oc get routes bridge -n amq-streams -o=jsonpath='{.status.ingress[0].host}{"\n"}')
+KAFKA_BRIDGE_ROUTE_URL=$(oc get routes my-bridge-bridge-service -n amq-streams -o=jsonpath='{.status.ingress[0].host}{"\n"}')
 ```
 
 Verificamos que el servicio este disponible
@@ -697,11 +707,8 @@ Otras configuraciones destacadas
 ```
 
 
+# Docker
 
+docker run --rm -t -i --name kafka-producer -v $PWD/client.truststore.jks:/opt/kafka/truststore.jks registry.redhat.io/amq7/amq-streams-kafka-28-rhel8:1.8.0 /bin/bash -c "bin/kafka-console-producer.sh --broker-list my-cluster-kafka-tls-bootstrap-amq-streams.apps.redlinktalleramqstreams0.2dc5.sandbox653.opentlc.com:443 --producer-property security.protocol=SSL --producer-property ssl.keystore.password=redhat01 --producer-property ssl.keystore.location=/opt/kafka/truststore.jks --topic my-topic"
 
-
-
-bin/kafka-topics.sh --bootstrap-server ${BOOTSTRAP_SERVER_CUSTOMTLS_URL}:443 --command-config client.properties --delete --topic topic-perf-test
-
-bin/kafka-consumer-groups.sh --bootstrap-server ${BOOTSTRAP_SERVER_CUSTOMTLS_URL}:443 --command-config client.properties --all-groups --describe
-
+docker run --rm -t -i --name kafka-consumer -v $PWD/client.truststore.jks:/opt/kafka/truststore.jks registry.redhat.io/amq7/amq-streams-kafka-28-rhel8:1.8.0 /bin/bash -c "bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-tls-bootstrap-amq-streams.apps.redlinktalleramqstreams0.2dc5.sandbox653.opentlc.com:443 --consumer-property security.protocol=SSL --consumer-property ssl.keystore.password=redhat01 --consumer-property ssl.keystore.location=/opt/kafka/truststore.jks --topic my-topic --from-beginning"
