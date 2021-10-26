@@ -15,7 +15,7 @@ public class SimpleProducerExample {
       
       String topic = "my-topic";
       
-      String bootstrapServers = "my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.d8ab.sandbox1168.opentlc.com:443";
+      String bootstrapServers = "my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.b1a2.sandbox1080.opentlc.com:443";
   
       Properties prop = new Properties();
       
@@ -30,6 +30,8 @@ public class SimpleProducerExample {
       prop.put("batch.size", 16384);
       
       prop.put("linger.ms", 1);
+      
+      prop.put("compression.type", "gzip");
       
       prop.put("buffer.memory", 33554432);
       

@@ -11,7 +11,7 @@ public class SimpleConsumerExample {
       
       String topic = "my-topic";
       String consumerGroup = "group1";
-      String bootstrapServers = "my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.d8ab.sandbox1168.opentlc.com:443";
+      String bootstrapServers = "my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.b1a2.sandbox1080.opentlc.com:443";
 	  	  
       Properties prop = new Properties();
       

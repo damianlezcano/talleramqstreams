@@ -24,12 +24,12 @@ public class ProducerTask {
 			
     	logger.info("# Enviando mensajes: " + value);
     	
-		//kafkaProducer.initTransactions();
+		kafkaProducer.initTransactions();
 		
 		ProducerRecord<String, String> deliveryMessage = new ProducerRecord<String, String>(topic, value);
 		this.kafkaProducer.send(deliveryMessage);
 		
-		//kafkaProducer.commitTransaction();
+	    kafkaProducer.commitTransaction();
 
     }
 

@@ -8,7 +8,7 @@ app:
       delay: 5000
 
   kafka:
-    brokerHosts: my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.d8ab.sandbox1168.opentlc.com:443
+    brokerHosts: my-cluster-kafka-tls-bootstrap-amq-streams.apps.talleramqstreams.b1a2.sandbox1080.opentlc.com:443
     topic: my-topic
 
     producer:
